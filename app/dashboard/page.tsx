@@ -88,8 +88,8 @@ export default function DashboardPage() {
   const [deletingPost, setDeletingPost] = useState<BlogPost | null>(null)
   const [submittingDelete, setSubmittingDelete] = useState<boolean>(false)
 
-  const blogId = process.env.NEXT_PUBLIC_BLOG_ID || "3729627085550627147"
-  const blogUrl = process.env.NEXT_PUBLIC_BLOGGER_URL || "https://jerukagunglabs.blogspot.com/"
+  const blogId = process.env.NEXT_PUBLIC_BLOG_ID
+  const blogUrl = process.env.NEXT_PUBLIC_BLOGGER_URL
 
   const checkOAuthStatus = async () => {
     try {
@@ -338,20 +338,6 @@ export default function DashboardPage() {
                   <ShieldCheck className="h-3.5 w-3.5" />
                   {userRole}
                 </span>
-                {oauthStatus.isConnected ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
-                    <Check className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                    Blogger CRUD Aktif
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                    <AlertCircle className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                    Blogger Read-Only
-                  </span>
-                )}
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Laboratorium Jerukagung Seismologi
-                </span>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Dashboard Pengelola Publikasi
@@ -441,9 +427,6 @@ export default function DashboardPage() {
                 <PenSquare className="h-5 w-5 text-primary-600" />
                 Pusat Pengelolaan Konten Blogger
               </CardTitle>
-              <CardDescription>
-                Anda dapat menulis postingan baru langsung dari formulir website atau menggunakan editor resmi Google Blogger.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap items-center gap-4">
@@ -455,7 +438,7 @@ export default function DashboardPage() {
                 >
                   <Link href="/editor">
                     <PenSquare className="h-4 w-4" />
-                    Tulis Postingan Baru
+                    Postingan Baru
                   </Link>
                 </Button>
 
@@ -470,44 +453,6 @@ export default function DashboardPage() {
                     <Edit3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     Edit Postingan Sebelumnya ({posts.length})
                   </Link>
-                </Button>
-
-                {/* Tombol Tulis di Blogger Resmi */}
-                <Button
-                  size="lg"
-                  variant="outline"
-                  asChild
-                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 font-semibold"
-                >
-                  <a
-                    href={`https://www.blogger.com/blog/post/edit/${blogId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
-                  >
-                    <PenSquare className="h-4 w-4 text-emerald-600" />
-                    Editor Resmi Blogger.com
-                    <ExternalLink className="h-3.5 w-3.5 ml-1 opacity-80" />
-                  </a>
-                </Button>
-
-                {/* Tombol Kelola Semua di Blogger */}
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  asChild
-                  className="font-medium text-xs text-gray-600 dark:text-gray-300"
-                >
-                  <a
-                    href={`https://www.blogger.com/blog/posts/${blogId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5"
-                  >
-                    <Layers className="h-4 w-4" />
-                    Semua Draft di Blogger
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
                 </Button>
               </div>
 
