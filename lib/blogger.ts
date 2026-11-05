@@ -9,6 +9,8 @@ export interface BlogPost {
   author?: string
   categories?: string[]
   url?: string
+  isDraft?: boolean
+  commentsCount?: number
 }
 
 function cleanHtmlEntities(text: string): string {
@@ -59,6 +61,8 @@ function parseApiV3ItemToBlogPost(item: any): BlogPost {
   const categories = item.labels || ["Publikasi"]
   const author = item.author?.displayName || "Jerukagung Seismologi"
   const originalUrl = item.url || ""
+  const isDraft = item.status === "DRAFT"
+  const commentsCount = Number(item.replies?.totalItems || 0)
 
   return {
     id,
@@ -71,6 +75,8 @@ function parseApiV3ItemToBlogPost(item: any): BlogPost {
     author,
     categories,
     url: originalUrl,
+    isDraft,
+    commentsCount,
   }
 }
 
@@ -101,6 +107,7 @@ function parseFeedEntryToBlogPost(item: any, fallbackIndex: number = 0): BlogPos
   const summary = plainText.length > 150 ? `${plainText.slice(0, 150)}...` : plainText
   const categories = item.category?.map((c: any) => c.term).filter(Boolean) || ["Publikasi"]
   const author = item.author?.[0]?.name?.$t || "Jerukagung Seismologi"
+  const commentsCount = Number(item.thr$total?.$t || 0)
 
   return {
     id,
@@ -113,6 +120,8 @@ function parseFeedEntryToBlogPost(item: any, fallbackIndex: number = 0): BlogPos
     author,
     categories,
     url: originalUrl,
+    isDraft: false,
+    commentsCount,
   }
 }
 

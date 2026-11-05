@@ -24,22 +24,12 @@ export default async function PublikasiPage() {
           {/* Header Banner */}
           <div className="mb-10 text-center md:text-left md:flex md:items-end md:justify-between border-b border-gray-200 dark:border-gray-800 pb-8 gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800 text-xs font-semibold text-primary-700 dark:text-primary-300 mb-3">
-                <Globe className="h-3.5 w-3.5" />
-                Google Blogger Feed
-              </div>
               <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                Publikasi & Buletin Ilmiah
+                Publikasi & Berita
               </h1>
               <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-2 max-w-2xl leading-relaxed">
                 Kumpulan buletin resmi, laporan pemantauan cuaca, dan publikasi penelitian dari Laboratorium Jerukagung Seismologi.
               </p>
-            </div>
-
-            <div className="mt-4 md:mt-0 flex-shrink-0">
-              <span className="inline-block text-xs font-semibold text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-                {posts.length} Publikasi Tersedia
-              </span>
             </div>
           </div>
 
