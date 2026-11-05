@@ -116,27 +116,23 @@ function parseFeedEntryToBlogPost(item: any, fallbackIndex: number = 0): BlogPos
   }
 }
 
-const DEFAULT_BLOG_ID = "3729627085550627147"
-const DEFAULT_API_KEY = "AIzaSyDRxiIJem04z0gxmVr3f2gHnbSnLPzgAKM"
-const DEFAULT_BLOG_URL = "https://jerukagunglabs.blogspot.com/"
-
 function getCredentials() {
   const apiKey = (
     process.env.NEXT_PUBLIC_BLOGGER_API_KEY ||
     process.env.BLOGGER_API_KEY ||
-    DEFAULT_API_KEY
+    ""
   ).trim()
 
   const blogId = (
     process.env.NEXT_PUBLIC_BLOG_ID ||
     process.env.BLOGGER_BLOG_ID ||
-    DEFAULT_BLOG_ID
+    ""
   ).trim()
 
   const blogUrl = (
     process.env.NEXT_PUBLIC_BLOGGER_URL ||
     process.env.BLOGGER_URL ||
-    DEFAULT_BLOG_URL
+    ""
   ).trim()
 
   return { apiKey, blogId, blogUrl }
