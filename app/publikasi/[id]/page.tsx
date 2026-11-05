@@ -24,10 +24,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${post.title} - Pusat Informasi Laboratorium Jerukagung Seismologi`,
     description: post.summary,
+    alternates: {
+      canonical: `/publikasi/${post.id}`,
+    },
     openGraph: {
       title: post.title,
       description: post.summary,
-      images: post.thumbnail ? [post.thumbnail] : [],
+      url: `/publikasi/${post.id}`,
+      type: "article",
+      publishedTime: post.isoDate,
+      authors: post.author ? [post.author] : ["Jerukagung Seismologi"],
+      images: post.thumbnail ? [{ url: post.thumbnail }] : [],
     },
   }
 }
@@ -43,8 +50,38 @@ export default async function PublikasiDetailPage({ params }: PageProps) {
   // Ambil beberapa artikel lainnya untuk rekomendasi di bawah
   const recentPosts = (await getBloggerPosts(4)).filter((p) => p.id !== post.id).slice(0, 3)
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.summary,
+    image: post.thumbnail ? [post.thumbnail] : [],
+    datePublished: post.isoDate || new Date().toISOString(),
+    dateModified: post.isoDate || new Date().toISOString(),
+    author: {
+      "@type": "Organization",
+      name: post.author || "Jerukagung Seismologi",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Laboratorium Jerukagung Seismologi",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://jerukagunglabs.web.id/img/logo.png",
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `https://jerukagunglabs.web.id/publikasi/${post.id}`,
+    },
+  }
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Header />
       <Navbar />
 

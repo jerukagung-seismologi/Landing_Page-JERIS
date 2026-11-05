@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://jerukagunglabs.web.id"),
   title: {
     template: "%s | Jerukagung Seismologi",
     default: "Laboratorium | Jerukagung Seismologi",
@@ -24,9 +25,19 @@ export const metadata: Metadata = {
     "Sensor",
     "Aktuator",
   ],
+  verification: {
+    google: "Sfw4AJux-0gq0e5K8YlW5k8F9dK_WbmGEjKsWD-3hXM",
+  },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
   icons: {
     icon: [
@@ -55,9 +66,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning>
-      <head>
-        <meta name="google-site-verification" content="Sfw4AJux-0gq0e5K8YlW5k8F9dK_WbmGEjKsWD-3hXM" />
-      </head>
       <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"

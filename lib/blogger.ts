@@ -2,6 +2,7 @@ export interface BlogPost {
   id: string
   title: string
   date: string
+  isoDate?: string
   summary: string
   content?: string
   thumbnail: string
@@ -134,6 +135,7 @@ function parseApiV3ItemToBlogPost(item: any): BlogPost {
     id,
     title,
     date: dateFormatted,
+    isoDate: item.published || item.updated || "",
     summary,
     content: fullContent,
     thumbnail,
@@ -175,6 +177,7 @@ function parseFeedEntryToBlogPost(item: any, fallbackIndex: number = 0): BlogPos
     id,
     title: item.title?.$t || "Tanpa Judul",
     date: dateFormatted,
+    isoDate: item.published?.$t || item.updated?.$t || "",
     summary,
     content: fullContent,
     thumbnail,

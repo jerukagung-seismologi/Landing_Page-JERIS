@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Menu } from "lucide-react"
+import { Menu, LogIn } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -41,6 +41,21 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
+          </div>
+
+          {/* Action / Login Button on Desktop */}
+          <div className="hidden md:flex items-center space-x-3">
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="border-primary-500 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+            >
+              <Link href="/login" className="flex items-center gap-1.5">
+                <LogIn className="h-4 w-4" />
+                <span>Kelola Konten</span>
+              </Link>
+            </Button>
           </div>
 
           {/* Mobile menu button */}
@@ -81,7 +96,22 @@ export default function Navbar() {
                     </Link>
                   ))}
                 </div>
-                <div className="mt-6 border-t pt-4 flex items-center justify-between">
+
+                <div className="mt-4 pt-4 border-t">
+                  <Button
+                    asChild
+                    className="w-full bg-primary-500 hover:bg-primary-600 text-white flex items-center justify-center gap-2"
+                    size="sm"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Link href="/login">
+                      <LogIn className="h-4 w-4" />
+                      Kelola Konten
+                    </Link>
+                  </Button>
+                </div>
+
+                <div className="mt-4 border-t pt-4 flex items-center justify-between">
                   <span className="text-sm text-gray-500 dark:text-gray-400">Tema</span>
                   <ThemeToggle className="text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800" />
                 </div>
