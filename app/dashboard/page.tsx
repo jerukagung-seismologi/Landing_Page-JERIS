@@ -434,60 +434,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Status Integrasi Google Blogger */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-            <Card className="bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700/80 rounded-xl shadow-sm">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-xs">Sumber Konten</CardDescription>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-primary-500" />
-                  Google Blogger API v3
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold mb-1">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Terhubung & Sinkron
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  {blogUrl}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700/80 rounded-xl shadow-sm">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-xs">Blog ID Resmi</CardDescription>
-                <CardTitle className="text-base font-mono text-gray-800 dark:text-gray-200">
-                  {blogId}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Semua artikel dikelola murni pada blog ini
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700/80 rounded-xl shadow-sm">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-xs">Artikel Aktif</CardDescription>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-primary-500" />
-                  {posts.length} Postingan Live
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Link
-                  href="/publikasi"
-                  className="text-xs text-primary-600 dark:text-primary-400 hover:underline inline-flex items-center font-medium"
-                >
-                  Buka Halaman Publikasi Web &rarr;
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Quick Actions Panel */}
           <Card className="border-gray-100 dark:border-gray-700/80 mb-8 rounded-2xl shadow-sm overflow-hidden bg-gradient-to-br from-primary-50/60 to-white dark:from-gray-800 dark:to-gray-800">
             <CardHeader className="pb-4">
@@ -507,7 +453,7 @@ export default function DashboardPage() {
                   asChild
                   className="bg-primary-600 hover:bg-primary-700 text-white font-semibold shadow-md flex items-center gap-2"
                 >
-                  <Link href="/dashboard/editor">
+                  <Link href="/editor">
                     <PenSquare className="h-4 w-4" />
                     Tulis Postingan Baru
                   </Link>
@@ -520,7 +466,7 @@ export default function DashboardPage() {
                   asChild
                   className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-semibold shadow-xs flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-950/40"
                 >
-                  <Link href="/dashboard/editor?action=pick">
+                  <Link href="/editor?action=pick">
                     <Edit3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     Edit Postingan Sebelumnya ({posts.length})
                   </Link>
@@ -645,7 +591,7 @@ export default function DashboardPage() {
                           asChild
                           className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
                         >
-                          <Link href={`/dashboard/editor?id=${post.id}`}>
+                          <Link href={`/editor?id=${post.id}`}>
                             <Edit3 className="h-3.5 w-3.5 mr-1" />
                             Edit Postingan
                           </Link>
