@@ -41,10 +41,24 @@ export default function DashboardPage() {
   const loadBloggerPosts = async () => {
     setRefreshing(true)
     try {
-      const data = await getBloggerPosts(20)
-      setPosts(data)
+      const res = await fetch("/api/blogger/posts")
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data)) {
+          setPosts(data)
+          return
+        }
+      }
+      const direct = await getBloggerPosts(20)
+      setPosts(direct)
     } catch (err) {
       console.error("Error loading posts from Blogger:", err)
+      try {
+        const direct = await getBloggerPosts(20)
+        setPosts(direct)
+      } catch (directErr) {
+        console.error("Direct fetch error:", directErr)
+      }
     } finally {
       setRefreshing(false)
     }
