@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -53,6 +53,8 @@ export default function Navbar() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[280px] sm:w-[350px]">
+                <SheetTitle className="sr-only">Menu Navigasi</SheetTitle>
+                <SheetDescription className="sr-only">Navigasi situs Laboratorium Jerukagung Seismologi</SheetDescription>
                 <div className="flex items-center mb-6">
                   <div className="relative w-10 h-10 mr-2">
                     <Image src="/img/logo.png" alt="Jerukagung Meteorologi Logo" fill className="object-contain" />
@@ -80,23 +82,12 @@ export default function Navbar() {
                   ))}
                 </div>
                 <div className="mt-6 border-t pt-4 flex items-center justify-between">
-                  {/* <Link href="/autentikasi" passHref>
-                    <Button variant="outline" onClick={() => setIsOpen(false)}>
-                      Login
-                    </Button>
-                  </Link> */}
-                  <ThemeToggle />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Tema</span>
+                  <ThemeToggle className="text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800" />
                 </div>
               </SheetContent>
             </Sheet>
           </div>
-
-          {/* Login Button */}
-          {/* <div className="hidden md:flex items-center">
-            <Link href="/login" passHref>
-              <Button variant="outline">Login</Button>
-            </Link>
-          </div> */}
         </div>
       </div>
     </nav>

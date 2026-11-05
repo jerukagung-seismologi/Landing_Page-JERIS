@@ -37,7 +37,7 @@ export default function KatalogPage() {
     <>
       <Header />
       <Navbar />
-      <div className="bg-gray-100 dark:bg-gray-900">
+      <div className="bg-gray-100 dark:bg-gray-900 min-h-[calc(100vh-280px)]">
         <div className="container mx-auto px-4 py-8">
           <h2 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-gray-100">
             Katalog Produk
@@ -60,9 +60,9 @@ export default function KatalogPage() {
                   <p className="text-gray-600 dark:text-gray-300">{project.description}</p>
                 </CardContent>
                 <CardFooter>
-                  <Link href={project.link} passHref>
-                    <Button>Baca Selengkapnya</Button>
-                  </Link>
+                  <Button asChild className="w-full sm:w-auto">
+                    <Link href={project.link}>Baca Selengkapnya</Link>
+                  </Button>
                 </CardFooter>
               </Card>
             ))}
