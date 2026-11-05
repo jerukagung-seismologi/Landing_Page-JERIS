@@ -40,6 +40,8 @@ import {
   HelpCircle,
   X,
   Plus,
+  FolderOpen,
+  Edit3,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -95,6 +97,11 @@ function BloggerEditorContent() {
   const [imageUrl, setImageUrl] = useState<string>("")
   const [imageAlt, setImageAlt] = useState<string>("")
 
+  // Existing posts picker state
+  const [existingPosts, setExistingPosts] = useState<any[]>([])
+  const [loadingPostsList, setLoadingPostsList] = useState<boolean>(false)
+  const [postPickerOpen, setPostPickerOpen] = useState<boolean>(false)
+
   // Notification message
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
@@ -112,7 +119,41 @@ function BloggerEditorContent() {
     return () => unsubscribe()
   }, [router])
 
-  // Load existing post if editing
+  // Fetch list of existing posts for the picker
+  useEffect(() => {
+    const fetchExistingPosts = async () => {
+      setLoadingPostsList(true)
+      try {
+        const res = await fetch("/api/blogger/posts")
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data)) {
+            setExistingPosts(data)
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load posts for editor picker:", err)
+      } finally {
+        setLoadingPostsList(false)
+      }
+    }
+    fetchExistingPosts()
+
+    if (searchParams.get("action") === "pick") {
+      setPostPickerOpen(true)
+    }
+  }, [searchParams])
+
+  // Synchronize content to visual editor canvas
+  useEffect(() => {
+    if (!loading && visualEditorRef.current && editorMode === "visual") {
+      if (document.activeElement !== visualEditorRef.current) {
+        visualEditorRef.current.innerHTML = contentHtml
+      }
+    }
+  }, [loading, editorMode, contentHtml])
+
+  // Load existing post if editing via URL ?id=...
   useEffect(() => {
     if (!authReady) return
 
@@ -127,9 +168,6 @@ function BloggerEditorContent() {
           setTitle(data.title || "")
           const initialContent = data.content || data.summary || ""
           setContentHtml(initialContent)
-          if (visualEditorRef.current) {
-            visualEditorRef.current.innerHTML = initialContent
-          }
           if (Array.isArray(data.categories) && data.categories.length > 0) {
             setLabels(data.categories)
           }
@@ -149,12 +187,23 @@ function BloggerEditorContent() {
 <h2>1. Pengantar dan Analisis</h2>
 <p>Laboratorium Jerukagung Seismologi terus memantau dinamika kebumian secara berkala.</p>`
       setContentHtml(defaultContent)
-      if (visualEditorRef.current) {
-        visualEditorRef.current.innerHTML = defaultContent
-      }
       setLoading(false)
     }
   }, [authReady, isEditing, postId])
+
+  const handleSelectPostToEdit = (post: any) => {
+    setTitle(post.title || "")
+    const content = post.content || post.summary || ""
+    setContentHtml(content)
+    if (visualEditorRef.current) {
+      visualEditorRef.current.innerHTML = content
+    }
+    if (Array.isArray(post.categories) && post.categories.length > 0) {
+      setLabels(post.categories)
+    }
+    setPostPickerOpen(false)
+    router.replace(`/dashboard/editor?id=${post.id}`)
+  }
 
   // Sync content between visual editor and state
   const handleVisualInput = () => {
@@ -373,6 +422,19 @@ function BloggerEditorContent() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-2 flex-shrink-0 self-end md:self-center">
+              {/* Tombol Pilih Postingan Sebelumnya untuk Diedit */}
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={() => setPostPickerOpen(true)}
+                className="text-xs flex items-center gap-1.5 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+              >
+                <FolderOpen className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                <span className="hidden sm:inline">Pilih Postingan ({existingPosts.length})</span>
+                <span className="sm:hidden">Pilih ({existingPosts.length})</span>
+              </Button>
+
               {/* Pratinjau Toggle */}
               <Button
                 variant={editorMode === "preview" ? "secondary" : "outline"}
@@ -410,6 +472,47 @@ function BloggerEditorContent() {
               </Button>
             </div>
           </div>
+
+          {/* Status Mode Edit Postingan */}
+          {isEditing && (
+            <div className="mb-5 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-blue-900 dark:text-blue-200">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold uppercase text-[10px] bg-blue-600 text-white px-2.5 py-0.5 rounded-full">
+                  Mode Edit
+                </span>
+                <span>Sedang menyunting artikel: <strong className="underline">{title || "Memuat..."}</strong> (ID: {postId})</span>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  type="button"
+                  onClick={() => setPostPickerOpen(true)}
+                  className="text-xs text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 h-7 px-2.5"
+                >
+                  <FolderOpen className="h-3.5 w-3.5 mr-1" />
+                  Ganti Artikel Lain
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() => {
+                    setTitle("")
+                    const starter = "<p>Tuliskan ringkasan artikel baru di sini...</p>"
+                    setContentHtml(starter)
+                    if (visualEditorRef.current) visualEditorRef.current.innerHTML = starter
+                    setLabels(["Publikasi"])
+                    router.replace("/dashboard/editor")
+                  }}
+                  className="text-xs border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 h-7 px-2.5 bg-white dark:bg-gray-800"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Tulis Artikel Baru
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Flash Alert Banner */}
           {message && (
@@ -1013,6 +1116,72 @@ function BloggerEditorContent() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Pilih Postingan untuk Diedit */}
+      <Dialog open={postPickerOpen} onOpenChange={setPostPickerOpen}>
+        <DialogContent className="max-w-2xl bg-white dark:bg-gray-900 max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <FolderOpen className="h-5 w-5 text-blue-600" />
+              Pilih Postingan Blogger untuk Diedit
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Pilih salah satu artikel yang sudah pernah Anda terbitkan di Google Blogger untuk dimuat ke dalam editor.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto py-2 divide-y divide-gray-100 dark:divide-gray-800">
+            {existingPosts.length > 0 ? (
+              existingPosts.map((post) => (
+                <div
+                  key={post.id}
+                  className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 p-2.5 rounded-xl transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0 border border-gray-200 dark:border-gray-700">
+                      <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        {post.title}
+                      </h4>
+                      <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
+                        <span>{post.date}</span>
+                        <span>&bull;</span>
+                        <span>{post.categories ? post.categories.join(", ") : "Publikasi"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    type="button"
+                    onClick={() => handleSelectPostToEdit(post)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex-shrink-0 self-end sm:self-center"
+                  >
+                    <Edit3 className="h-3.5 w-3.5 mr-1" />
+                    Buka &amp; Edit
+                  </Button>
+                </div>
+              ))
+            ) : loadingPostsList ? (
+              <div className="text-center py-8 text-xs text-gray-500">
+                Memuat daftar artikel dari Blogger...
+              </div>
+            ) : (
+              <div className="text-center py-8 text-xs text-gray-500">
+                Belum ada artikel ditemukan di Blogger.
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="pt-3 border-t border-gray-100 dark:border-gray-800">
+            <Button type="button" variant="outline" size="sm" onClick={() => setPostPickerOpen(false)}>
+              Tutup
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
         </div>

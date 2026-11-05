@@ -509,7 +509,20 @@ export default function DashboardPage() {
                 >
                   <Link href="/dashboard/editor">
                     <PenSquare className="h-4 w-4" />
-                    Buka Editor Lengkap ala Blogger
+                    Tulis Postingan Baru
+                  </Link>
+                </Button>
+
+                {/* Tombol Edit Postingan Sebelumnya */}
+                <Button
+                  size="lg"
+                  variant="outline"
+                  asChild
+                  className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-semibold shadow-xs flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                >
+                  <Link href="/dashboard/editor?action=pick">
+                    <Edit3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    Edit Postingan Sebelumnya ({posts.length})
                   </Link>
                 </Button>
 
@@ -629,13 +642,12 @@ export default function DashboardPage() {
                         {/* Edit Langsung di Web */}
                         <Button
                           size="sm"
-                          variant="outline"
                           asChild
-                          className="text-xs text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                          className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
                         >
                           <Link href={`/dashboard/editor?id=${post.id}`}>
                             <Edit3 className="h-3.5 w-3.5 mr-1" />
-                            Edit di Web
+                            Edit Postingan
                           </Link>
                         </Button>
 

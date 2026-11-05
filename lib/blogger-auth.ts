@@ -10,7 +10,7 @@ export function getOAuthConfig() {
   const blogId = (
     process.env.NEXT_PUBLIC_BLOG_ID ||
     process.env.BLOGGER_BLOG_ID ||
-    ""
+    "3729627085550627147"
   ).trim()
 
   return { clientId, clientSecret, redirectUri, blogId }
