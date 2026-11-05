@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server"
-import { updateBloggerPost, deleteBloggerPost } from "@/lib/blogger-auth"
-import { getBloggerPostById } from "@/lib/blogger"
+import {
+  updateBloggerPost,
+  deleteBloggerPost,
+  getAuthBloggerPostById,
+  publishBloggerPost,
+  revertBloggerPostToDraft,
+} from "@/lib/blogger-auth"
+import { getBloggerPostById, parseApiV3ItemToBlogPost } from "@/lib/blogger"
 
 export const dynamic = "force-dynamic"
 
@@ -11,6 +17,18 @@ interface RouteParams {
 export async function GET(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params
+
+    // 1. Coba ambil via OAuth (bisa membaca artikel status LIVE maupun DRAFT)
+    try {
+      const authPostItem = await getAuthBloggerPostById(id)
+      if (authPostItem && authPostItem.id) {
+        return NextResponse.json(parseApiV3ItemToBlogPost(authPostItem))
+      }
+    } catch (authErr) {
+      console.warn(`[API Get Single Post] OAuth fetch fallback for ${id}:`, authErr)
+    }
+
+    // 2. Fallback publik
     const post = await getBloggerPostById(id)
     if (!post) {
       return NextResponse.json({ error: "Postingan tidak ditemukan" }, { status: 404 })
@@ -29,7 +47,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params
     const body = await request.json()
-    const { title, content, labels } = body
+    const { title, content, labels, publish, revert } = body
 
     if (!title || !content) {
       return NextResponse.json(
@@ -48,8 +66,27 @@ export async function PUT(request: Request, { params }: RouteParams) {
         : [],
     })
 
+    // Jika diminta mempublikasikan draf
+    if (publish) {
+      try {
+        await publishBloggerPost(id)
+      } catch (pubErr) {
+        console.warn(`[API Update] Publish call warning:`, pubErr)
+      }
+    } else if (revert) {
+      try {
+        await revertBloggerPostToDraft(id)
+      } catch (revErr) {
+        console.warn(`[API Update] Revert call warning:`, revErr)
+      }
+    }
+
     return NextResponse.json({
-      message: "Postingan berhasil diperbarui di Blogger!",
+      message: publish
+        ? "Draf artikel berhasil dipublikasikan ke Blogger!"
+        : revert
+        ? "Artikel berhasil dikembalikan ke status Draf di Blogger!"
+        : "Postingan berhasil diperbarui di Blogger!",
       post: updated,
     })
   } catch (error: any) {

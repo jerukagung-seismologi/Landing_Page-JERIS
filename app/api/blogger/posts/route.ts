@@ -1,13 +1,29 @@
 import { NextResponse } from "next/server"
-import { getBloggerPosts } from "@/lib/blogger"
-import { createBloggerPost } from "@/lib/blogger-auth"
+import { getBloggerPosts, parseApiV3ItemToBlogPost } from "@/lib/blogger"
+import { createBloggerPost, getAuthBloggerPosts } from "@/lib/blogger-auth"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 export async function GET() {
   try {
-    const posts = await getBloggerPosts(20)
+    // 1. Coba ambil daftar artikel lengkap (LIVE + DRAFT) via Google Blogger OAuth
+    try {
+      const authItems = await getAuthBloggerPosts(50)
+      if (Array.isArray(authItems) && authItems.length > 0) {
+        const posts = authItems.map(parseApiV3ItemToBlogPost)
+        return NextResponse.json(posts, {
+          headers: {
+            "Cache-Control": "no-store, max-age=0",
+          },
+        })
+      }
+    } catch (authErr) {
+      console.warn("[API Blogger Posts] OAuth draft fetch fallback to public:", authErr)
+    }
+
+    // 2. Fallback ke publik reader (jika akun Google belum terhubung)
+    const posts = await getBloggerPosts(30)
     return NextResponse.json(posts, {
       headers: {
         "Cache-Control": "no-store, max-age=0",

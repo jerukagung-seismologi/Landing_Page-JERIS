@@ -37,12 +37,52 @@ export function formatDateIndo(dateString?: string): string {
 }
 
 /**
+ * Mengoptimalkan URL gambar Blogger agar beresolusi tinggi (HD/1600px) dan tidak pecah/mozaik.
+ * Menghapus/mengganti parameter kompresi kecil Blogger (seperti s72, s72-c, s72-w299-h400-c, w299-h400, s320)
+ * menjadi ukuran target beresolusi tinggi (default: s1600).
+ */
+export function optimizeBloggerImageUrl(url?: string, sizeParam: string = "s1600"): string {
+  if (!url) return "/img/beritaiklim.jpg"
+
+  if (
+    url.includes("blogger.googleusercontent.com") ||
+    url.includes("bp.blogspot.com") ||
+    url.includes("googleusercontent.com")
+  ) {
+    const sizeRegex = /\/([swh]\d+[^/]*|s0)\/([^/]+)$/
+    if (sizeRegex.test(url)) {
+      return url.replace(sizeRegex, `/${sizeParam}/$2`)
+    }
+  }
+
+  return url
+}
+
+/**
+ * Mengoptimalkan semua gambar di dalam konten HTML artikel agar tidak pecah/mozaik
+ */
+export function optimizeBloggerContentImages(contentHtml: string): string {
+  if (!contentHtml) return ""
+
+  return contentHtml.replace(
+    /(https:\/\/(?:blogger\.googleusercontent\.com|[\w-]+\.bp\.blogspot\.com|[\w-]+\.googleusercontent\.com)\/[^"'\s<>]+?\/)([swh]\d+[^/]*|s0)\/([^"'\s<>]+)/g,
+    (match, prefix, oldSize, filename) => {
+      if (oldSize === "s1600" || oldSize === "s2400" || oldSize === "s0") {
+        return match
+      }
+      return `${prefix}s1600/${filename}`
+    }
+  )
+}
+
+/**
  * Parser untuk item dari Google Cloud Blogger API v3
  */
-function parseApiV3ItemToBlogPost(item: any): BlogPost {
+export function parseApiV3ItemToBlogPost(item: any): BlogPost {
   const id = item.id || ""
   const title = item.title || "Tanpa Judul"
-  const fullContent = item.content || ""
+  const rawContent = item.content || ""
+  const fullContent = optimizeBloggerContentImages(rawContent)
 
   let thumbnail = ""
   if (item.images && item.images.length > 0 && item.images[0].url) {
@@ -51,8 +91,9 @@ function parseApiV3ItemToBlogPost(item: any): BlogPost {
     const match = fullContent.match(/<img[^>]+src=["']([^"']+)["']/)
     thumbnail = match ? match[1] : "/img/beritaiklim.jpg"
   }
+  thumbnail = optimizeBloggerImageUrl(thumbnail, "s1600")
 
-  const dateFormatted = formatDateIndo(item.published)
+  const dateFormatted = formatDateIndo(item.published || item.updated)
   const plainText = cleanHtmlEntities(
     fullContent.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()
   )
@@ -61,7 +102,7 @@ function parseApiV3ItemToBlogPost(item: any): BlogPost {
   const categories = item.labels || ["Publikasi"]
   const author = item.author?.displayName || "Jerukagung Seismologi"
   const originalUrl = item.url || ""
-  const isDraft = item.status === "DRAFT"
+  const isDraft = String(item.status || "").toUpperCase() === "DRAFT"
   const commentsCount = Number(item.replies?.totalItems || 0)
 
   return {
@@ -90,15 +131,15 @@ function parseFeedEntryToBlogPost(item: any, fallbackIndex: number = 0): BlogPos
     : rawId.split("-").pop() || `post-${fallbackIndex}`
 
   const originalUrl = item.link?.find((l: any) => l.rel === "alternate")?.href || ""
-  const fullContent = item.content?.$t || item.summary?.$t || ""
+  const rawContent = item.content?.$t || item.summary?.$t || ""
+  const fullContent = optimizeBloggerContentImages(rawContent)
 
   let thumbnail = item.media$thumbnail?.url
-  if (thumbnail) {
-    thumbnail = thumbnail.replace(/\/s\d+(-c)?\//, "/w800-h450-c/")
-  } else {
+  if (!thumbnail) {
     const match = fullContent.match(/<img[^>]+src=["']([^"']+)["']/)
     thumbnail = match ? match[1] : "/img/beritaiklim.jpg"
   }
+  thumbnail = optimizeBloggerImageUrl(thumbnail, "s1600")
 
   const dateFormatted = formatDateIndo(item.published?.$t)
   const plainText = cleanHtmlEntities(

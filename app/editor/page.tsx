@@ -42,6 +42,13 @@ import {
   Plus,
   FolderOpen,
   Edit3,
+  Upload,
+  Trash2,
+  Maximize2,
+  Sliders,
+  FileImage,
+  Check,
+  Search,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -55,7 +62,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { onAuthStateChanged } from "firebase/auth"
-import { auth } from "@/lib/ConfigFirebase"
+import { auth, storage } from "@/lib/ConfigFirebase"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 
 const RECOMMENDED_LABELS = [
   "Publikasi",
@@ -93,14 +101,29 @@ function BloggerEditorContent() {
   const [linkUrl, setLinkUrl] = useState<string>("")
   const [linkText, setLinkText] = useState<string>("")
 
+  // Image insertion states (Upload file, URL, Size presets, Alignment, Caption)
   const [imageModalOpen, setImageModalOpen] = useState<boolean>(false)
+  const [imageSourceMode, setImageSourceMode] = useState<"upload" | "url">("upload")
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("")
   const [imageUrl, setImageUrl] = useState<string>("")
   const [imageAlt, setImageAlt] = useState<string>("")
+  const [imageCaption, setImageCaption] = useState<string>("")
+  const [imageSize, setImageSize] = useState<"small" | "medium" | "large" | "xlarge" | "full" | "custom">("medium")
+  const [customWidth, setCustomWidth] = useState<string>("400")
+  const [imageAlign, setImageAlign] = useState<"left" | "center" | "right">("center")
+  const [uploadingImage, setUploadingImage] = useState<boolean>(false)
+
+  // In-canvas selected image node
+  const [selectedImageNode, setSelectedImageNode] = useState<HTMLImageElement | null>(null)
 
   // Existing posts picker state
   const [existingPosts, setExistingPosts] = useState<any[]>([])
   const [loadingPostsList, setLoadingPostsList] = useState<boolean>(false)
   const [postPickerOpen, setPostPickerOpen] = useState<boolean>(false)
+  const [pickerTab, setPickerTab] = useState<"all" | "published" | "draft">("all")
+  const [pickerSearch, setPickerSearch] = useState<string>("")
+  const [isPostDraft, setIsPostDraft] = useState<boolean>(false)
 
   // Notification message
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -168,6 +191,7 @@ function BloggerEditorContent() {
           setTitle(data.title || "")
           const initialContent = data.content || data.summary || ""
           setContentHtml(initialContent)
+          setIsPostDraft(Boolean(data.isDraft))
           if (Array.isArray(data.categories) && data.categories.length > 0) {
             setLabels(data.categories)
           }
@@ -195,6 +219,7 @@ function BloggerEditorContent() {
     setTitle(post.title || "")
     const content = post.content || post.summary || ""
     setContentHtml(content)
+    setIsPostDraft(Boolean(post.isDraft))
     if (visualEditorRef.current) {
       visualEditorRef.current.innerHTML = content
     }
@@ -255,23 +280,208 @@ function BloggerEditorContent() {
     setLabels(labels.filter((t) => t !== tagToRemove))
   }
 
+  // File selection for image upload
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      alert("Harap pilih berkas gambar (JPG, PNG, WebP, GIF)!")
+      return
+    }
+    setImageFile(file)
+    const localUrl = URL.createObjectURL(file)
+    setImagePreviewUrl(localUrl)
+    if (!imageAlt) {
+      setImageAlt(file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "))
+    }
+  }
+
   // Handle Image Insert
-  const handleInsertImage = (e: React.FormEvent) => {
+  const handleInsertImage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!imageUrl.trim()) return
 
-    const imageHtml = `<p><img src="${imageUrl.trim()}" alt="${imageAlt.trim() || "Foto Publikasi Jeris"}" style="max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0;" /></p>`
+    let finalImageUrl = imageUrl.trim()
 
-    if (editorMode === "html") {
-      setContentHtml((prev) => prev + "\n" + imageHtml)
-    } else {
-      executeCommand("insertHTML", imageHtml)
+    if (imageSourceMode === "upload") {
+      if (!imageFile && !imagePreviewUrl) {
+        alert("Pilih berkas gambar dari perangkat Anda terlebih dahulu!")
+        return
+      }
+
+      setUploadingImage(true)
+      try {
+        if (imageFile) {
+          // Coba unggah ke Firebase Storage jika tersedia
+          try {
+            const cleanName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")
+            const storageRef = ref(storage, `blogger_uploads/${Date.now()}_${cleanName}`)
+            const snapshot = await uploadBytes(storageRef, imageFile)
+            finalImageUrl = await getDownloadURL(snapshot.ref)
+          } catch (storageErr) {
+            console.warn("Firebase Storage upload skipped/failed, using optimized data URL:", storageErr)
+            // Fallback: baca sebagai Base64 Data URL agar gambar tetap 100% tersisipkan
+            finalImageUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader()
+              reader.onload = () => resolve(reader.result as string)
+              reader.onerror = reject
+              reader.readAsDataURL(imageFile)
+            })
+          }
+        }
+      } catch (err: any) {
+        alert("Gagal memproses gambar: " + (err.message || "Kesalahan berkas"))
+        setUploadingImage(false)
+        return
+      } finally {
+        setUploadingImage(false)
+      }
     }
 
+    if (!finalImageUrl) {
+      alert("Harap masukkan URL gambar atau pilih berkas foto!")
+      return
+    }
+
+    // Tentukan lebar gambar sesuai pilihan ala Blogger
+    let widthStyle = "350px"
+    if (imageSize === "small") widthStyle = "200px"
+    else if (imageSize === "medium") widthStyle = "350px"
+    else if (imageSize === "large") widthStyle = "550px"
+    else if (imageSize === "xlarge") widthStyle = "800px"
+    else if (imageSize === "full") widthStyle = "100%"
+    else if (imageSize === "custom" && customWidth) widthStyle = `${customWidth.replace(/\D/g, "") || "400"}px`
+
+    // Tentukan perataan posisi
+    let containerStyle = "clear: both; margin: 16px auto; text-align: center;"
+    let imgAlignStyle = "margin: 0 auto; display: block;"
+
+    if (imageAlign === "left") {
+      containerStyle = "clear: both; margin: 12px 18px 14px 0; float: left; text-align: left;"
+      imgAlignStyle = "display: inline-block;"
+    } else if (imageAlign === "right") {
+      containerStyle = "clear: both; margin: 12px 0 14px 18px; float: right; text-align: right;"
+      imgAlignStyle = "display: inline-block;"
+    }
+
+    const captionHtml = imageCaption.trim()
+      ? `<div style="font-size: 12px; color: #6b7280; margin-top: 6px; font-style: italic; line-height: 1.4;">${imageCaption.trim()}</div>`
+      : ""
+
+    const imageMarkup = `<div class="separator image-container" style="${containerStyle} max-width: 100%;">
+  <img src="${finalImageUrl}" alt="${imageAlt.trim() || "Gambar Publikasi Jeris"}" style="width: ${widthStyle}; max-width: 100%; height: auto; border-radius: 8px; cursor: pointer; ${imgAlignStyle}" />
+  ${captionHtml}
+</div><p><br></p>`
+
+    if (editorMode === "html") {
+      setContentHtml((prev) => prev + "\n" + imageMarkup)
+    } else {
+      executeCommand("insertHTML", imageMarkup)
+    }
+
+    // Reset modal form
     setImageModalOpen(false)
+    setImageFile(null)
+    setImagePreviewUrl("")
     setImageUrl("")
     setImageAlt("")
+    setImageCaption("")
+    setImageSize("medium")
+    setImageAlign("center")
   }
+
+  // Live in-canvas image resizing & alignment
+  const handleResizeSelectedImage = (size: "small" | "medium" | "large" | "xlarge" | "full") => {
+    if (!selectedImageNode) return
+    let targetWidth = "350px"
+    if (size === "small") targetWidth = "200px"
+    else if (size === "medium") targetWidth = "350px"
+    else if (size === "large") targetWidth = "550px"
+    else if (size === "xlarge") targetWidth = "800px"
+    else if (size === "full") targetWidth = "100%"
+
+    selectedImageNode.style.width = targetWidth
+    selectedImageNode.style.maxWidth = "100%"
+    selectedImageNode.style.height = "auto"
+
+    handleVisualInput()
+  }
+
+  const handleAlignSelectedImage = (align: "left" | "center" | "right") => {
+    if (!selectedImageNode) return
+    const container = selectedImageNode.closest(".image-container") as HTMLElement | null
+
+    if (align === "left") {
+      selectedImageNode.style.float = "left"
+      selectedImageNode.style.margin = "0 16px 12px 0"
+      selectedImageNode.style.display = "inline-block"
+      if (container) {
+        container.style.float = "left"
+        container.style.margin = "12px 18px 14px 0"
+        container.style.textAlign = "left"
+      }
+    } else if (align === "right") {
+      selectedImageNode.style.float = "right"
+      selectedImageNode.style.margin = "0 0 12px 16px"
+      selectedImageNode.style.display = "inline-block"
+      if (container) {
+        container.style.float = "right"
+        container.style.margin = "12px 0 14px 18px"
+        container.style.textAlign = "right"
+      }
+    } else {
+      selectedImageNode.style.float = "none"
+      selectedImageNode.style.margin = "16px auto"
+      selectedImageNode.style.display = "block"
+      if (container) {
+        container.style.float = "none"
+        container.style.margin = "16px auto"
+        container.style.textAlign = "center"
+      }
+    }
+
+    handleVisualInput()
+  }
+
+  const handleDeleteSelectedImage = () => {
+    if (!selectedImageNode) return
+    const container = selectedImageNode.closest(".image-container")
+    if (container) {
+      container.remove()
+    } else {
+      selectedImageNode.remove()
+    }
+    setSelectedImageNode(null)
+    handleVisualInput()
+  }
+
+  // Click listener for selecting images inside the visual canvas
+  useEffect(() => {
+    const editor = visualEditorRef.current
+    if (!editor) return
+
+    const handleEditorClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target && target.tagName === "IMG") {
+        const img = target as HTMLImageElement
+        setSelectedImageNode(img)
+        editor.querySelectorAll("img").forEach((el) => {
+          ;(el as HTMLElement).style.outline = "none"
+        })
+        img.style.outline = "3px solid #f97316"
+        img.style.outlineOffset = "3px"
+      } else {
+        if (selectedImageNode) {
+          selectedImageNode.style.outline = "none"
+          setSelectedImageNode(null)
+        }
+      }
+    }
+
+    editor.addEventListener("click", handleEditorClick)
+    return () => {
+      editor.removeEventListener("click", handleEditorClick)
+    }
+  }, [selectedImageNode, editorMode])
 
   // Handle Link Insert
   const handleInsertLink = (e: React.FormEvent) => {
@@ -312,7 +522,8 @@ function BloggerEditorContent() {
 
     try {
       if (isEditing && postId) {
-        // Update post
+        // Update post (bisa menyimpan perubahan draf atau mempublikasikan draf)
+        const willPublishDraft = isPostDraft && publishNow
         const res = await fetch(`/api/blogger/posts/${postId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -320,6 +531,7 @@ function BloggerEditorContent() {
             title,
             content: contentHtml,
             labels,
+            publish: willPublishDraft,
           }),
         })
 
@@ -328,7 +540,9 @@ function BloggerEditorContent() {
 
         setMessage({
           type: "success",
-          text: `Postingan "${title}" berhasil diperbarui di Blogger!`,
+          text: willPublishDraft
+            ? `Draf "${title}" berhasil dipublikasikan ke Blogger!`
+            : `Perubahan "${title}" berhasil disimpan di Blogger!`,
         })
 
         setTimeout(() => {
@@ -448,15 +662,15 @@ function BloggerEditorContent() {
                 </span>
               </Button>
 
-              {!isEditing && (
+              {(!isEditing || isPostDraft) && (
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={saving}
                   onClick={() => handleSavePost(false)}
-                  className="text-xs flex items-center gap-1.5 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700"
+                  className="text-xs flex items-center gap-1.5 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
-                  <Save className="h-3.5 w-3.5" />
+                  <Save className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                   <span>Simpan Draf</span>
                 </Button>
               )}
@@ -468,19 +682,38 @@ function BloggerEditorContent() {
                 className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs"
               >
                 <Send className={`h-3.5 w-3.5 ${saving ? "animate-spin" : ""}`} />
-                {saving ? "Menyimpan..." : isEditing ? "Simpan Perubahan" : "Publikasikan ke Blogger"}
+                {saving
+                  ? "Menyimpan..."
+                  : isEditing
+                  ? isPostDraft
+                    ? "Publikasikan Draf Ini"
+                    : "Simpan Perubahan"
+                  : "Publikasikan ke Blogger"}
               </Button>
             </div>
           </div>
 
           {/* Status Mode Edit Postingan */}
           {isEditing && (
-            <div className="mb-5 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-blue-900 dark:text-blue-200">
+            <div
+              className={`mb-5 p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+                isPostDraft
+                  ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200"
+                  : "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200"
+              }`}
+            >
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold uppercase text-[10px] bg-blue-600 text-white px-2.5 py-0.5 rounded-full">
-                  Mode Edit
+                <span
+                  className={`font-bold uppercase text-[10px] text-white px-2.5 py-0.5 rounded-full ${
+                    isPostDraft ? "bg-amber-600" : "bg-blue-600"
+                  }`}
+                >
+                  {isPostDraft ? "Mode Edit Draf" : "Mode Edit"}
                 </span>
-                <span>Sedang menyunting artikel: <strong className="underline">{title || "Memuat..."}</strong> (ID: {postId})</span>
+                <span>
+                  Sedang menyunting {isPostDraft ? "draf" : "artikel"}:{" "}
+                  <strong className="underline">{title || "Memuat..."}</strong> (ID: {postId})
+                </span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Button
@@ -488,7 +721,11 @@ function BloggerEditorContent() {
                   variant="ghost"
                   type="button"
                   onClick={() => setPostPickerOpen(true)}
-                  className="text-xs text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 h-7 px-2.5"
+                  className={`text-xs h-7 px-2.5 ${
+                    isPostDraft
+                      ? "text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                      : "text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                  }`}
                 >
                   <FolderOpen className="h-3.5 w-3.5 mr-1" />
                   Ganti Artikel Lain
@@ -503,6 +740,7 @@ function BloggerEditorContent() {
                     setContentHtml(starter)
                     if (visualEditorRef.current) visualEditorRef.current.innerHTML = starter
                     setLabels(["Publikasi"])
+                    setIsPostDraft(false)
                     router.replace("/editor")
                   }}
                   className="text-xs border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 h-7 px-2.5 bg-white dark:bg-gray-800"
@@ -787,6 +1025,131 @@ function BloggerEditorContent() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column: Writing Area (Visual, HTML, or Preview) */}
         <div className="lg:col-span-3 flex flex-col">
+          {/* Interactive Image Toolbar when an image is clicked in canvas */}
+          {selectedImageNode && editorMode === "visual" && (
+            <div className="mb-4 bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 border-2 border-orange-400 dark:border-orange-500 rounded-2xl p-3.5 shadow-md flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                  <ImageIcon className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <span>Pengaturan Gambar Terpilih</span>
+                    <span className="text-[10px] font-semibold text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-200 dark:border-orange-800">
+                      Lebar: {selectedImageNode.style.width || "Asli"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Klik tombol ukuran atau perataan posisi di bawah untuk memperbarui gambar secara instan:
+                  </p>
+                </div>
+              </div>
+
+              {/* Controls: Size Presets, Alignment, Delete */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Size Presets ala Blogger */}
+                <div className="flex items-center bg-white dark:bg-gray-900 rounded-xl p-1 border border-orange-200/80 dark:border-gray-700 shadow-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-2">Ukuran:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleResizeSelectedImage("small")}
+                    className="px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Kecil (200px)"
+                  >
+                    Kecil
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResizeSelectedImage("medium")}
+                    className="px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Sedang (350px)"
+                  >
+                    Sedang
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResizeSelectedImage("large")}
+                    className="px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Besar (550px)"
+                  >
+                    Besar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResizeSelectedImage("xlarge")}
+                    className="px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Sangat Besar (800px)"
+                  >
+                    X-Besar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResizeSelectedImage("full")}
+                    className="px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Ukuran Penuh (100%)"
+                  >
+                    Penuh
+                  </button>
+                </div>
+
+                {/* Alignment */}
+                <div className="flex items-center bg-white dark:bg-gray-900 rounded-xl p-1 border border-orange-200/80 dark:border-gray-700 shadow-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-2">Posisi:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleAlignSelectedImage("left")}
+                    className="p-1.5 text-gray-700 dark:text-gray-200 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Rata Kiri"
+                  >
+                    <AlignLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAlignSelectedImage("center")}
+                    className="p-1.5 text-gray-700 dark:text-gray-200 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Rata Tengah"
+                  >
+                    <AlignCenter className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAlignSelectedImage("right")}
+                    className="p-1.5 text-gray-700 dark:text-gray-200 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Rata Kanan"
+                  >
+                    <AlignRight className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Delete Button */}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDeleteSelectedImage}
+                  className="h-8 text-xs text-red-600 hover:text-red-700 bg-white dark:bg-gray-900 hover:bg-red-50 dark:hover:bg-red-950/40 border-red-200 dark:border-red-900/50 rounded-xl flex items-center gap-1.5"
+                  title="Hapus gambar terpilih"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Hapus</span>
+                </Button>
+
+                {/* Close/Deselect */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedImageNode) selectedImageNode.style.outline = "none"
+                    setSelectedImageNode(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg hover:bg-gray-200/50 dark:hover:bg-gray-700"
+                  title="Selesai / Batalkan Seleksi"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {editorMode === "visual" && (
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-xs min-h-[600px] p-6 md:p-8 flex flex-col">
               <div
@@ -990,71 +1353,245 @@ function BloggerEditorContent() {
         </div>
       </div>
 
-      {/* Modal: Sisipkan Gambar */}
+      {/* Modal: Sisipkan Gambar Lengkap ala Google Blogger */}
       <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
-        <DialogContent className="max-w-md bg-white dark:bg-gray-900">
+        <DialogContent className="max-w-lg bg-white dark:bg-gray-900 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <ImageIcon className="h-5 w-5 text-primary-600" />
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+              <ImageIcon className="h-5 w-5 text-orange-500" />
               Sisipkan Gambar ke Artikel
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Masukkan tautan URL gambar (misal dari Google Photos, Imgur, atau link hosting gambar Anda).
+              Pilih berkas dari perangkat Anda atau masukkan tautan URL web, lalu atur ukuran dan perataan posisi gambar.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleInsertImage} className="space-y-3 py-2">
-            <div>
-              <Label htmlFor="image-url" className="text-xs font-semibold">
-                URL Gambar (https://...) *
-              </Label>
-              <Input
-                id="image-url"
-                placeholder="https://images.unsplash.com/photo-..."
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                required
-                className="mt-1 text-xs"
-              />
-            </div>
+          {/* Mode Tabs: Upload File vs Masukkan URL */}
+          <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl my-2">
+            <button
+              type="button"
+              onClick={() => setImageSourceMode("upload")}
+              className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                imageSourceMode === "upload"
+                  ? "bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-xs"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+              }`}
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Upload dari Komputer / HP
+            </button>
+            <button
+              type="button"
+              onClick={() => setImageSourceMode("url")}
+              className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                imageSourceMode === "url"
+                  ? "bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-xs"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+              }`}
+            >
+              <LinkIcon className="h-3.5 w-3.5" />
+              Melalui URL Gambar
+            </button>
+          </div>
 
-            <div>
-              <Label htmlFor="image-alt" className="text-xs font-semibold">
-                Keterangan / Deskripsi Foto (Alt Text)
-              </Label>
-              <Input
-                id="image-alt"
-                placeholder="Stasiun Pengamatan Cuaca Jerukagung"
-                value={imageAlt}
-                onChange={(e) => setImageAlt(e.target.value)}
-                className="mt-1 text-xs"
-              />
-            </div>
-
-            {imageUrl && (
-              <div className="mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 h-28 bg-gray-100">
-                <img
-                  src={imageUrl}
-                  alt="Pratinjau"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    ;(e.target as any).style.display = "none"
-                  }}
-                />
+          <form onSubmit={handleInsertImage} className="space-y-4 py-1">
+            {/* Tab 1: Upload File */}
+            {imageSourceMode === "upload" && (
+              <div>
+                <Label htmlFor="image-file-input" className="text-xs font-semibold block mb-1.5">
+                  Pilih Berkas Foto / Gambar *
+                </Label>
+                <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-center hover:border-orange-400 transition-colors bg-gray-50/50 dark:bg-gray-800/40">
+                  <input
+                    type="file"
+                    id="image-file-input"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  {imagePreviewUrl ? (
+                    <div className="space-y-3">
+                      <div className="w-full h-40 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                        <img
+                          src={imagePreviewUrl}
+                          alt="Pratinjau"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-xs px-1">
+                        <span className="truncate max-w-[200px] text-gray-700 dark:text-gray-300 font-medium">
+                          {imageFile?.name || "Foto Terpilih"}
+                        </span>
+                        <label
+                          htmlFor="image-file-input"
+                          className="text-orange-600 hover:underline cursor-pointer font-semibold"
+                        >
+                          Ganti Berkas
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="image-file-input"
+                      className="cursor-pointer flex flex-col items-center justify-center py-4"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/40 text-orange-600 flex items-center justify-center mb-2">
+                        <Upload className="h-6 w-6" />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                        Klik untuk memilih gambar dari perangkat
+                      </span>
+                      <span className="text-[11px] text-gray-400 mt-1">
+                        Format JPG, PNG, WebP, GIF (Ukuran disarankan &lt; 5MB)
+                      </span>
+                    </label>
+                  )}
+                </div>
               </div>
             )}
 
-            <DialogFooter className="gap-2 pt-3">
+            {/* Tab 2: URL Input */}
+            {imageSourceMode === "url" && (
+              <div>
+                <Label htmlFor="image-url" className="text-xs font-semibold">
+                  Tautan URL Gambar (https://...) *
+                </Label>
+                <Input
+                  id="image-url"
+                  placeholder="https://images.unsplash.com/... atau link foto online"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="mt-1 text-xs"
+                />
+                {imageUrl && (
+                  <div className="mt-2.5 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 h-32 bg-gray-100 flex items-center justify-center">
+                    <img
+                      src={imageUrl}
+                      alt="Pratinjau"
+                      className="max-h-full max-w-full object-contain"
+                      onError={(e) => {
+                        ;(e.target as any).style.display = "none"
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Setting: Pilihan Ukuran Gambar ala Blogger */}
+            <div>
+              <Label className="text-xs font-semibold block mb-1.5">
+                Pengaturan Ukuran Gambar:
+              </Label>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                {[
+                  { id: "small", label: "Kecil", desc: "200px" },
+                  { id: "medium", label: "Sedang", desc: "350px (Standar)" },
+                  { id: "large", label: "Besar", desc: "550px" },
+                  { id: "xlarge", label: "X-Besar", desc: "800px" },
+                  { id: "full", label: "Penuh", desc: "100%" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setImageSize(item.id as any)}
+                    className={`py-2 px-1.5 rounded-xl border text-center transition-all ${
+                      imageSize === item.id
+                        ? "border-orange-500 bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 font-bold shadow-xs"
+                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="text-xs">{item.label}</div>
+                    <div className="text-[10px] opacity-75 font-normal">{item.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Setting: Perataan Posisi (Alignment) */}
+            <div>
+              <Label className="text-xs font-semibold block mb-1.5">
+                Perataan Posisi Gambar:
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "left", label: "Rata Kiri", icon: AlignLeft },
+                  { id: "center", label: "Rata Tengah", icon: AlignCenter },
+                  { id: "right", label: "Rata Kanan", icon: AlignRight },
+                ].map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setImageAlign(item.id as any)}
+                      className={`py-2 px-2 rounded-xl border text-center flex items-center justify-center gap-1.5 transition-all text-xs ${
+                        imageAlign === item.id
+                          ? "border-orange-500 bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 font-bold shadow-xs"
+                          : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-300"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      <span>{item.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Setting: Keterangan / Caption & Alt Text */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="image-caption" className="text-xs font-semibold">
+                  Keterangan Foto (Caption Bawah)
+                </Label>
+                <Input
+                  id="image-caption"
+                  placeholder="Contoh: Sensor seismograf di Stasiun Jerukagung"
+                  value={imageCaption}
+                  onChange={(e) => setImageCaption(e.target.value)}
+                  className="mt-1 text-xs"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="image-alt" className="text-xs font-semibold">
+                  Deskripsi Aksesibilitas (Alt Text)
+                </Label>
+                <Input
+                  id="image-alt"
+                  placeholder="Deskripsi singkat foto"
+                  value={imageAlt}
+                  onChange={(e) => setImageAlt(e.target.value)}
+                  className="mt-1 text-xs"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setImageModalOpen(false)}
+                disabled={uploadingImage}
               >
                 Batal
               </Button>
-              <Button type="submit" size="sm" className="bg-primary-600 hover:bg-primary-700 text-white">
-                Sisipkan ke Artikel
+              <Button
+                type="submit"
+                size="sm"
+                disabled={uploadingImage}
+                className="bg-orange-600 hover:bg-orange-700 text-white font-semibold"
+              >
+                {uploadingImage ? (
+                  <>
+                    <Upload className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    Mengunggah Foto...
+                  </>
+                ) : (
+                  "Sisipkan ke Artikel"
+                )}
               </Button>
             </DialogFooter>
           </form>
@@ -1128,29 +1665,106 @@ function BloggerEditorContent() {
               Pilih Postingan Blogger untuk Diedit
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Pilih salah satu artikel yang sudah pernah Anda terbitkan di Google Blogger untuk dimuat ke dalam editor.
+              Pilih artikel yang dipublikasikan atau draf dari Google Blogger untuk dimuat ke dalam editor.
             </DialogDescription>
           </DialogHeader>
 
+          {/* Subheader: Filter Tabs & Search */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 py-2 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-1 p-1 bg-gray-100/90 dark:bg-gray-800 rounded-lg text-xs">
+              <button
+                type="button"
+                onClick={() => setPickerTab("all")}
+                className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                  pickerTab === "all"
+                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-xs font-semibold"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                }`}
+              >
+                Semua ({existingPosts.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPickerTab("published")}
+                className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                  pickerTab === "published"
+                    ? "bg-white dark:bg-gray-700 text-emerald-700 dark:text-emerald-400 shadow-xs font-semibold"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                }`}
+              >
+                Dipublikasikan ({existingPosts.filter((p) => !p.isDraft).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPickerTab("draft")}
+                className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                  pickerTab === "draft"
+                    ? "bg-white dark:bg-gray-700 text-amber-700 dark:text-amber-400 shadow-xs font-semibold"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                }`}
+              >
+                Draf ({existingPosts.filter((p) => p.isDraft).length})
+              </button>
+            </div>
+
+            <div className="relative flex-1 sm:max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Telusuri postingan..."
+                value={pickerSearch}
+                onChange={(e) => setPickerSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
           <div className="flex-1 overflow-y-auto py-2 divide-y divide-gray-100 dark:divide-gray-800">
-            {existingPosts.length > 0 ? (
-              existingPosts.map((post) => (
+            {existingPosts
+              .filter((p) => {
+                if (pickerTab === "published" && p.isDraft) return false
+                if (pickerTab === "draft" && !p.isDraft) return false
+                if (pickerSearch.trim()) {
+                  const q = pickerSearch.toLowerCase()
+                  const titleMatch = p.title?.toLowerCase().includes(q)
+                  const labelMatch =
+                    Array.isArray(p.categories) &&
+                    p.categories.some((c: string) => c.toLowerCase().includes(q))
+                  return titleMatch || labelMatch
+                }
+                return true
+              })
+              .map((post) => (
                 <div
                   key={post.id}
                   className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 p-2.5 rounded-xl transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0 border border-gray-200 dark:border-gray-700">
-                      <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover" />
+                      <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover object-top" />
                     </div>
                     <div className="min-w-0">
                       <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                         {post.title}
                       </h4>
-                      <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
-                        <span>{post.date}</span>
+                      <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5 flex-wrap">
+                        {post.isDraft ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                            Draf
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                            Dipublikasikan
+                          </span>
+                        )}
                         <span>&bull;</span>
-                        <span>{post.categories ? post.categories.join(", ") : "Publikasi"}</span>
+                        <span>{post.date}</span>
+                        {post.categories && post.categories.length > 0 && (
+                          <>
+                            <span>&bull;</span>
+                            <span className="truncate max-w-[150px]">{post.categories.join(", ")}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1165,12 +1779,15 @@ function BloggerEditorContent() {
                     Buka &amp; Edit
                   </Button>
                 </div>
-              ))
-            ) : loadingPostsList ? (
+              ))}
+
+            {existingPosts.length === 0 && loadingPostsList && (
               <div className="text-center py-8 text-xs text-gray-500">
-                Memuat daftar artikel dari Blogger...
+                Memuat daftar artikel dan draf dari Blogger...
               </div>
-            ) : (
+            )}
+
+            {existingPosts.length === 0 && !loadingPostsList && (
               <div className="text-center py-8 text-xs text-gray-500">
                 Belum ada artikel ditemukan di Blogger.
               </div>

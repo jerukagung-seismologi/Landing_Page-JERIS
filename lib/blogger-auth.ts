@@ -229,3 +229,131 @@ export async function deleteBloggerPost(postId: string) {
   return { success: true }
 }
 
+/**
+ * Ambil Daftar Postingan Lengkap dari Blogger (LIVE + DRAFT) via OAuth
+ * Menggunakan view=ADMIN untuk mengambil artikel berstatus live maupun draft
+ */
+export async function getAuthBloggerPosts(maxResults: number = 50) {
+  const { blogId } = getOAuthConfig()
+  const accessToken = await getValidAccessToken()
+
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+  }
+
+  // Google Blogger API v3 menerima status tunggal per query ('live' atau 'draft') dengan view=ADMIN
+  const [liveRes, draftRes] = await Promise.all([
+    fetch(
+      `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?status=live&view=ADMIN&maxResults=${maxResults}&fetchBodies=true`,
+      { method: "GET", headers, cache: "no-store" }
+    ),
+    fetch(
+      `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?status=draft&view=ADMIN&maxResults=${maxResults}&fetchBodies=true`,
+      { method: "GET", headers, cache: "no-store" }
+    ),
+  ])
+
+  let liveItems: any[] = []
+  let draftItems: any[] = []
+
+  if (liveRes.ok) {
+    const liveData = await liveRes.json().catch(() => ({}))
+    liveItems = Array.isArray(liveData.items) ? liveData.items : []
+  }
+
+  if (draftRes.ok) {
+    const draftData = await draftRes.json().catch(() => ({}))
+    draftItems = Array.isArray(draftData.items) ? draftData.items : []
+  }
+
+  if (!liveRes.ok && !draftRes.ok) {
+    const err = await liveRes.json().catch(() => ({}))
+    throw new Error(err.error?.message || `Gagal mengambil postingan dari Blogger (${liveRes.status})`)
+  }
+
+  // Gabungkan draft dan live, urutkan berdasarkan updated/published terbaru
+  const combined = [...draftItems, ...liveItems]
+  combined.sort((a, b) => {
+    const dateA = new Date(a.updated || a.published || 0).getTime()
+    const dateB = new Date(b.updated || b.published || 0).getTime()
+    return dateB - dateA
+  })
+
+  return combined
+}
+
+/**
+ * Ambil Satu Postingan dari Blogger (Bisa berupa DRAF maupun LIVE) via OAuth
+ */
+export async function getAuthBloggerPostById(postId: string) {
+  const { blogId } = getOAuthConfig()
+  const accessToken = await getValidAccessToken()
+
+  const endpoint = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${postId}?view=ADMIN`
+
+  const res = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message || `Gagal mengambil postingan ${postId} (${res.status})`)
+  }
+
+  return res.json()
+}
+
+/**
+ * Publikasikan Draf Postingan
+ */
+export async function publishBloggerPost(postId: string) {
+  const { blogId } = getOAuthConfig()
+  const accessToken = await getValidAccessToken()
+
+  const endpoint = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${postId}/publish`
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message || `Gagal mempublikasikan draf (${res.status})`)
+  }
+
+  return res.json()
+}
+
+/**
+ * Kembalikan Postingan Publikasi ke Draf
+ */
+export async function revertBloggerPostToDraft(postId: string) {
+  const { blogId } = getOAuthConfig()
+  const accessToken = await getValidAccessToken()
+
+  const endpoint = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${postId}/revert`
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message || `Gagal mengembalikan postingan ke draf (${res.status})`)
+  }
+
+  return res.json()
+}
+

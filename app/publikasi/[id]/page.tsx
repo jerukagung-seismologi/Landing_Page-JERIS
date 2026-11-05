@@ -137,13 +137,18 @@ export default async function PublikasiDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Gambar Sampul Unggulan (jika bukan placeholder kosong) */}
+            {/* Gambar Sampul Unggulan (HD & Framing Proporsional Tanpa Terpotong) */}
             {post.thumbnail && (
-              <div className="w-full max-h-[480px] overflow-hidden bg-gray-100 dark:bg-gray-900">
+              <div className="relative w-full max-h-[540px] overflow-hidden bg-gray-950/5 dark:bg-gray-900/60 flex items-center justify-center border-b border-gray-100 dark:border-gray-800">
+                {/* Ambient blur backdrop untuk estetika modern pada layar lebar */}
+                <div
+                  className="absolute inset-0 bg-cover bg-center blur-2xl opacity-20 dark:opacity-30 scale-110 pointer-events-none"
+                  style={{ backgroundImage: `url(${post.thumbnail})` }}
+                />
                 <img
                   src={post.thumbnail}
                   alt={post.title}
-                  className="w-full h-full object-cover max-h-[480px]"
+                  className="relative max-h-[500px] w-auto max-w-full object-contain mx-auto shadow-sm"
                 />
               </div>
             )}
@@ -182,11 +187,11 @@ export default async function PublikasiDetailPage({ params }: PageProps) {
                     key={item.id}
                     className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col hover:shadow-md transition-shadow"
                   >
-                    <div className="h-40 bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                    <div className="h-44 bg-gray-200 dark:bg-gray-700 overflow-hidden">
                       <img
                         src={item.thumbnail}
                         alt={item.title}
-                        className="h-full w-full object-cover hover:scale-105 transition-transform duration-300"
+                        className="h-full w-full object-cover object-top hover:scale-105 transition-transform duration-300"
                       />
                     </div>
                     <div className="p-4 flex flex-col flex-grow">

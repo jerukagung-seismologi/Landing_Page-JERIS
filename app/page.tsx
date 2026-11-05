@@ -58,11 +58,11 @@ export default async function BerandaPage() {
                   key={item.id}
                   className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1"
                 >
-                  <div className="relative h-52 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                  <div className="relative h-56 bg-gray-100 dark:bg-gray-700 overflow-hidden">
                     <img
                       src={item.thumbnail}
                       alt={item.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                     />
                     <div className="absolute top-3 left-3 flex items-center gap-1.5">
                       <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/95 dark:bg-gray-900/90 text-primary-700 dark:text-primary-300 shadow-sm backdrop-blur-sm">

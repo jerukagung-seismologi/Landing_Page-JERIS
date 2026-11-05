@@ -42,11 +42,11 @@ export default async function PublikasiPage() {
                   className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1"
                 >
                   {/* Gambar Sampul */}
-                  <div className="relative h-52 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                  <div className="relative h-56 bg-gray-100 dark:bg-gray-700 overflow-hidden">
                     <img
                       src={item.thumbnail}
                       alt={item.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                     />
                     <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                       {item.categories && item.categories.length > 0 ? (

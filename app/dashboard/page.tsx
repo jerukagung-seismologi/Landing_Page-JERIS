@@ -736,7 +736,7 @@ export default function DashboardPage() {
                             <img
                               src={post.thumbnail}
                               alt={post.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover object-top"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800">
