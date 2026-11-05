@@ -19,7 +19,7 @@ export default async function BerandaPage() {
             Selamat Datang di Pusat Informasi Laboratorium Jerukagung Seismologi
           </h1>
           <p className="text-xl md:text-2xl drop-shadow-lg mb-8">
-            Penelitian dan Pengembangan Instrumentasi
+            Riset Rumpun Kebumian
           </p>
           <div className="flex flex-wrap justify-center gap-4"></div>
         </div>
@@ -30,14 +30,11 @@ export default async function BerandaPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
-                Pembaruan Resmi
-              </span>
               <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mt-1">
                 Publikasi & Riset Terbaru
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Catatan riset, pengamatan cuaca, dan instrumen kebumian resmi dari Google Blogger
+                Catatan riset, Pengamatan cuaca, dan Informasi
               </p>
             </div>
             {posts.length > 0 && (
