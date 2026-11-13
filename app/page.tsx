@@ -1,6 +1,5 @@
-import { CloudSun, LineChart, FlaskRoundIcon, Server, ArrowRight, Calendar, BookOpen } from "lucide-react"
+import { ArrowRight, Calendar, BookOpen } from "lucide-react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import Header from "@/components/header"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
@@ -111,93 +110,6 @@ export default async function BerandaPage() {
         </div>
       </section>
 
-      {/* Services Section */}
-      <section className="py-16 bg-white dark:bg-gray-800">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <span className="text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
-              Fokus Utama
-            </span>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mt-1 mb-3">
-              Layanan & Bidang Riset
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto text-sm md:text-base">
-              Kami berfokus pada penelitian dan pengembangan instrumentasi kebumian serta analisis data sains atmosfer
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border-t-4 border-primary-500 hover:shadow-md transition-shadow">
-              <div className="flex justify-center mb-4">
-                <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-full">
-                  <CloudSun className="h-7 w-7 text-primary-500" />
-                </div>
-              </div>
-              <h3 className="text-lg font-semibold text-center mb-2 text-gray-900 dark:text-white">
-                Pemantauan Fenomena Alam
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-center text-sm leading-relaxed">
-                Pengamatan fenomena alam untuk memahami dinamika lingkungan hidup dan perubahan iklim mikro.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border-t-4 border-primary-500 hover:shadow-md transition-shadow">
-              <div className="flex justify-center mb-4">
-                <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-full">
-                  <LineChart className="h-7 w-7 text-primary-500" />
-                </div>
-              </div>
-              <h3 className="text-lg font-semibold text-center mb-2 text-gray-900 dark:text-white">
-                Analisis Data
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-center text-sm leading-relaxed">
-                Analisis mendalam terhadap data kebumian untuk memberikan wawasan yang lebih baik tentang fenomena alam.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border-t-4 border-primary-500 hover:shadow-md transition-shadow">
-              <div className="flex justify-center mb-4">
-                <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-full">
-                  <FlaskRoundIcon className="h-7 w-7 text-primary-500" />
-                </div>
-              </div>
-              <h3 className="text-lg font-semibold text-center mb-2 text-gray-900 dark:text-white">
-                Riset & Pengembangan
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-center text-sm leading-relaxed">
-                Berpartisipasi dalam riset dan pengembangan instrumentasi lintas bidang ilmu pengetahuan.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border-t-4 border-primary-500 hover:shadow-md transition-shadow">
-              <div className="flex justify-center mb-4">
-                <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-full">
-                  <Server className="h-7 w-7 text-primary-500" />
-                </div>
-              </div>
-              <h3 className="text-lg font-semibold text-center mb-2 text-gray-900 dark:text-white">
-                Penyimpanan Data
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-center text-sm leading-relaxed">
-                Infrastruktur penyimpanan data sensor untuk memberikan akses penelitian yang andal dan berkelanjutan.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="bg-primary-700 text-white py-14">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-3">Laboratorium Jerukagung Seismologi</h2>
-          <p className="max-w-2xl mx-auto mb-8 text-primary-100 text-sm md:text-base leading-relaxed">
-            Pusat riset dan pemantauan sains atmosfer dan kebumian. Dapatkan wawasan ilmiah dan publikasi terkini.
-          </p>
-          <Button size="lg" asChild className="bg-white text-primary-700 hover:bg-gray-100 font-semibold shadow-md">
-            <Link href="/publikasi">Jelajahi Publikasi</Link>
-          </Button>
-        </div>
-      </section>
       <Footer />
     </>
   )
