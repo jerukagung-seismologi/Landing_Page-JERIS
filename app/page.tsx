@@ -1,4 +1,4 @@
-import { ArrowRight, Calendar, BookOpen } from "lucide-react"
+import { ArrowRight, Calendar, BookOpen, CloudSun, ExternalLink, Activity } from "lucide-react"
 import Link from "next/link"
 import Header from "@/components/header"
 import Navbar from "@/components/navbar"
@@ -20,7 +20,45 @@ export default async function BerandaPage() {
           <p className="text-xl md:text-2xl drop-shadow-lg mb-8">
             Riset Rumpun Kebumian
           </p>
-          <div className="flex flex-wrap justify-center gap-4"></div>
+          <div className="flex flex-wrap justify-center gap-4 [text-shadow:none]">
+            <a
+              href="https://cuaca.jeris.web.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 text-sm sm:text-base border border-emerald-400/30"
+            >
+              <CloudSun className="h-5 w-5 text-amber-300" />
+              <span>Dashboard Cuaca & Musim</span>
+              <ExternalLink className="h-4 w-4 ml-0.5 opacity-80" />
+            </a>
+
+            <a
+              href="https://meteo.jeris.web.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 text-sm sm:text-base border border-sky-400/30"
+            >
+              <Activity className="h-5 w-5 text-sky-200" />
+              <span>Meteo Sense</span>
+              <ExternalLink className="h-4 w-4 ml-0.5 opacity-80" />
+            </a>
+
+            <Link
+              href="/publikasi"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-semibold backdrop-blur-md border border-white/40 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 text-sm sm:text-base"
+            >
+              <BookOpen className="h-5 w-5" />
+              <span>Publikasi Riset</span>
+              <ArrowRight className="h-4 w-4 ml-0.5" />
+            </Link>
+
+            <Link
+              href="/katalog"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-black/30 hover:bg-black/50 text-white font-semibold backdrop-blur-md border border-white/20 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 text-sm sm:text-base"
+            >
+              <span>Katalog Instrumen</span>
+            </Link>
+          </div>
         </div>
       </div>
 
